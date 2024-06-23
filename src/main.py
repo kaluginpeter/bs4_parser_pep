@@ -3,7 +3,6 @@ import logging
 import re
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup
 from tqdm import tqdm
 import requests_cache
 
@@ -129,7 +128,6 @@ def pep(session):
     not_equal_statuses = []
     for category in categories:
         peps_in_category = category.find_all('tr')
-        results = [('Status', 'Quantity')]
         for pep in tqdm(peps_in_category[1:], desc='Parsing pep categories'):
             title = find_tag(pep, 'abbr')
             link_prefix = find_tag(
