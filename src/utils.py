@@ -1,9 +1,12 @@
-from bs4 import BeautifulSoup
 from requests import RequestException
+from traceback import format_exc
 
-from exceptions import ParserFindTagException
+from bs4 import BeautifulSoup
 
-error_message = 'Не найден тег {tag} {attrs}'
+from exceptions import ParserFindTagException, FailedConnectionException
+from constants import (
+    ERROR_CONNECTION_TO_URL_MESSAGE, ERROR_UNFOUNDED_TAG_MESSAGE
+)
 
 
 def get_response(session, url, encoding='utf-8'):
@@ -12,9 +15,10 @@ def get_response(session, url, encoding='utf-8'):
         response.encoding = encoding
         return response
     except RequestException:
-        raise RequestException(
-            f'Error been given in the moment connect with url {url}',
-            stack_info=True
+        raise FailedConnectionException(
+            ERROR_CONNECTION_TO_URL_MESSAGE.format(
+                url=url, traceback=format_exc()
+            )
         )
 
 
@@ -23,10 +27,23 @@ def find_tag(soup, tag, attrs=None):
     searched_tag = soup.find(tag, attrs=attrs)
     if searched_tag is None:
         raise ParserFindTagException(
-            error_message.format(tag=tag, attrs=[None, attrs][bool(attrs)])
+            ERROR_UNFOUNDED_TAG_MESSAGE.format(
+                tag=tag, attrs=[None, attrs][bool(attrs)]
+            )
         )
     return searched_tag
 
 
-def creating_soup(text):
-    return BeautifulSoup(text, 'lxml')
+def creating_soup(session, url, features='lxml'):
+    failed_connections = []
+    response = get_response(session, url)
+    if response is None:
+        failed_connections.append(
+            (
+                ERROR_CONNECTION_TO_URL_MESSAGE.format(
+                    url=url, traceback=format_exc()
+                )
+            )
+        )
+        return [], failed_connections
+    return BeautifulSoup(response.text, features), failed_connections
