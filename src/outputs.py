@@ -15,9 +15,15 @@ SUCCESSFUL_OUTPUT_FILE_MESSAGE = (
     'on path: {file_path}'
 )
 
+OUTPUT_FUNCTIONS = {
+    PRETTY_TABLE_OUTPUT: 'pretty_output',
+    FILE_OUTPUT: 'file_output',
+    None: 'default_output',
+}
+
 
 def control_output(results, cli_args):
-    OUTPUT_FUNCTIONS.get(cli_args.output)(results, cli_args)
+    OUTPUT_FUNCTIONS[cli_args.output](results, cli_args)
 
 
 def default_output(results, args=None):

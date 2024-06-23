@@ -1,12 +1,11 @@
 from requests import RequestException
-
 from bs4 import BeautifulSoup
 
 from exceptions import ParserFindTagException
 
 ERROR_CONNECTION_TO_URL_MESSAGE = (
     'Error been given in the moment connect with url {url}\n'
-    'Error message: {traceback}'
+    'Error message: {error}'
 )
 ERROR_UNFOUNDED_TAG_MESSAGE = 'Не найден тег {tag} {attrs}'
 
@@ -19,7 +18,7 @@ def get_response(session, url, encoding='utf-8'):
     except RequestException as error:
         raise ConnectionError(
             ERROR_CONNECTION_TO_URL_MESSAGE.format(
-                url=url, traceback=error
+                url=url, error=error
             )
         )
 
