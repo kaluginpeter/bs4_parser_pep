@@ -2,7 +2,6 @@ from collections import defaultdict
 import logging
 import re
 from urllib.parse import urljoin
-from traceback import format_exc
 
 from tqdm import tqdm
 import requests_cache
