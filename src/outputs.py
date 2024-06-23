@@ -6,16 +6,18 @@ from prettytable import PrettyTable
 
 from constants import (
     DATETIME_FORMAT, BASE_DIR, RESULTS_DIR,
-    FIRST_PARSER_MODE, SECOND_PARSER_MODE,
-    DEFAULT_PARSER_MODE, SUCCESSFUL_OUTPUT_FILE_MESSAGE
+    PRETTY_TABLE_OUTPUT, FILE_OUTPUT
 )
 
-empty_data_message = 'Parse mode return None data'
+EMPTY_DATA_MESSAGE = 'Parse mode return None data'
+SUCCESSFUL_OUTPUT_FILE_MESSAGE = (
+    'File with parsed data been saved, '
+    'on path: {file_path}'
+)
 
 
 def control_output(results, cli_args):
-    output = cli_args.output if cli_args.output else DEFAULT_PARSER_MODE
-    OUTPUT_FUNCTIONS.get(output)(results, cli_args)
+    OUTPUT_FUNCTIONS.get(cli_args.output)(results, cli_args)
 
 
 def default_output(results, args=None):
@@ -46,7 +48,7 @@ def file_output(results, cli_args):
 
 
 OUTPUT_FUNCTIONS = {
-    FIRST_PARSER_MODE: pretty_output,
-    SECOND_PARSER_MODE: file_output,
-    DEFAULT_PARSER_MODE: default_output,
+    PRETTY_TABLE_OUTPUT: pretty_output,
+    FILE_OUTPUT: file_output,
+    None: default_output,
 }

@@ -29,31 +29,5 @@ EXPECTED_STATUS = {
     '': ('Draft', 'Active'),
 }
 LOG_FORMAT = '"(asctime)s - [%(levelname)s] - %(message)s"'
-FIRST_PARSER_MODE = 'pretty'
-SECOND_PARSER_MODE = 'file'
-DEFAULT_PARSER_MODE = 'default'
-
-# Messages for parser
-ERROR_CONNECTION_TO_URL_MESSAGE = (
-    'Error been given in the moment connect with url {url}\n'
-    'Error message: {traceback}'
-)
-ERROR_UNFOUNDED_TAG_MESSAGE = 'Не найден тег {tag} {attrs}'
-ERROR_NOT_EQUAL_PEP_STATUSES = (
-    'Incorrect statuses:\n{detail_pep_url}\n'
-    'Real status: {status_on_detail_pep_page}\n'
-    'Excpected statues: '
-    '{excepcted_status}\n'
-)
-ERROR_PARSER_FINAL_PART = 'Parser got next error: {traceback}'
-SUCCESSFUL_OUTPUT_FILE_MESSAGE = (
-    'File with parsed data been saved, '
-    'on path: {file_path}'
-)
-SUCCESSFUL_DOWNLOAD_MESSAGE = (
-    'Archive with documentation been '
-    'saved, on path: {archive_path}'
-)
-INITIAL_PARSER_MESSAGE = 'Parser launch.'
-COMMAND_LINE_ARGUMENTS_MESSAGE = 'Cli arguments: {args}'
-FINAL_PARSER_MESSAGE = 'Parser completed his work.'
+PRETTY_TABLE_OUTPUT = 'pretty'
+FILE_OUTPUT = 'file'

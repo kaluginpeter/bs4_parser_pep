@@ -1,12 +1,14 @@
 from requests import RequestException
-from traceback import format_exc
 
 from bs4 import BeautifulSoup
 
-from exceptions import ParserFindTagException, FailedConnectionException
-from constants import (
-    ERROR_CONNECTION_TO_URL_MESSAGE, ERROR_UNFOUNDED_TAG_MESSAGE
+from exceptions import ParserFindTagException
+
+ERROR_CONNECTION_TO_URL_MESSAGE = (
+    'Error been given in the moment connect with url {url}\n'
+    'Error message: {traceback}'
 )
+ERROR_UNFOUNDED_TAG_MESSAGE = 'Не найден тег {tag} {attrs}'
 
 
 def get_response(session, url, encoding='utf-8'):
@@ -14,10 +16,10 @@ def get_response(session, url, encoding='utf-8'):
         response = session.get(url)
         response.encoding = encoding
         return response
-    except RequestException:
-        raise FailedConnectionException(
+    except RequestException as error:
+        raise ConnectionError(
             ERROR_CONNECTION_TO_URL_MESSAGE.format(
-                url=url, traceback=format_exc()
+                url=url, traceback=error
             )
         )
 
@@ -35,15 +37,4 @@ def find_tag(soup, tag, attrs=None):
 
 
 def creating_soup(session, url, features='lxml'):
-    failed_connections = []
-    response = get_response(session, url)
-    if response is None:
-        failed_connections.append(
-            (
-                ERROR_CONNECTION_TO_URL_MESSAGE.format(
-                    url=url, traceback=format_exc()
-                )
-            )
-        )
-        return [], failed_connections
-    return BeautifulSoup(response.text, features), failed_connections
+    return BeautifulSoup(get_response(session, url).text, features)

@@ -11,19 +11,39 @@ from constants import (
     BASE_DIR, MAIN_DOC_URL,
     MAIN_PEP_URL, EXPECTED_STATUS,
     WHATS_NEW_URL, DOWNLOAD_URL,
-    DOWNLOAD_DIR, ERROR_PARSER_FINAL_PART,
-    SUCCESSFUL_OUTPUT_FILE_MESSAGE,
-    INITIAL_PARSER_MESSAGE, COMMAND_LINE_ARGUMENTS_MESSAGE,
-    FINAL_PARSER_MESSAGE, ERROR_NOT_EQUAL_PEP_STATUSES
+    DOWNLOAD_DIR
 )
 from configs import configure_argument_parser, configure_logging
 from exceptions import NoneMatchesException
 from outputs import control_output
 from utils import find_tag, creating_soup
 
+SUCCESSFUL_DOWNLOAD_MESSAGE = (
+    'Archive with documentation been '
+    'saved, on path: {archive_path}'
+)
+INITIAL_PARSER_MESSAGE = 'Parser launch.'
+COMMAND_LINE_ARGUMENTS_MESSAGE = 'Cli arguments: {args}'
+FINAL_PARSER_MESSAGE = 'Parser completed his work.'
+ERROR_CONNECTION_TO_URL = 'Cannot connection to url! Error: {error}'
+ERROR_NOT_MATCHES = 'Find None matches!'
+ERROR_PARSER_FINAL_PART = 'Parser got next error: {traceback}'
+ERROR_NOT_EQUAL_PEP_STATUSES = (
+    'Incorrect statuses:\n{detail_pep_url}\n'
+    'Real status: {status_on_detail_pep_page}\n'
+    'Excpected statues: '
+    '{excepcted_status}\n'
+)
+
 
 def whats_new(session):
-    soup, failed_connections = creating_soup(session, WHATS_NEW_URL)
+    try:
+        soup = creating_soup(session, WHATS_NEW_URL)
+    except ConnectionError as error:
+        logging.error(
+            ERROR_CONNECTION_TO_URL.format(error=error)
+        )
+    errors = []
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, автор')]
     for tag_a in tqdm(
         soup.select(
@@ -33,8 +53,10 @@ def whats_new(session):
     ):
         href = tag_a.get('href')
         version_link = urljoin(WHATS_NEW_URL, href)
-        soup, new_failed_connections = creating_soup(session, version_link)
-        failed_connections.extend(new_failed_connections)
+        try:
+            soup = creating_soup(session, version_link)
+        except ConnectionError as error:
+            errors.append(ERROR_CONNECTION_TO_URL.format(error=error))
         results.append(
             (
                 version_link,
@@ -42,12 +64,17 @@ def whats_new(session):
                 find_tag(soup, 'dl').text.replace('\n', ' ')
             )
         )
-    [logging.error(failure) for failure in failed_connections]
+    [map(logging.error, errors)]
     return results
 
 
 def latest_versions(session):
-    soup, failed_connections = creating_soup(session, MAIN_DOC_URL)
+    try:
+        soup = creating_soup(session, MAIN_DOC_URL)
+    except ConnectionError as error:
+        logging.error(
+            ERROR_CONNECTION_TO_URL.format(error=error)
+        )
     sidebar = find_tag(soup, 'div', attrs={'class': 'sphinxsidebarwrapper'})
     ul_tags = find_tag(sidebar, 'ul')
     for ul in ul_tags:
@@ -55,7 +82,7 @@ def latest_versions(session):
             a_tags = find_tag(ul, 'a')
             break
     else:
-        raise NoneMatchesException('Find None matches!')
+        raise NoneMatchesException(ERROR_NOT_MATCHES)
     results = [('Link on docs', 'Version', 'Status')]
     # Pattern for searching version and status:
     pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
@@ -68,7 +95,6 @@ def latest_versions(session):
             version = a_tag.text
             status = ''
         results.append((link, version, status))
-    [logging.error(failure) for failure in failed_connections]
     return results
 
 
@@ -76,7 +102,12 @@ def download(session):
     downloads_url = DOWNLOAD_URL
     download_dir = BASE_DIR / DOWNLOAD_DIR
     download_dir.mkdir(exist_ok=True)
-    soup, failed_connections = creating_soup(session, DOWNLOAD_URL)
+    try:
+        soup = creating_soup(session, DOWNLOAD_URL)
+    except ConnectionError as error:
+        logging.error(
+            ERROR_CONNECTION_TO_URL.format(error=error)
+        )
     pdf_a4_link = next(
         (
             a['href'] for a in soup.select('table.docutils a[href]')
@@ -90,17 +121,22 @@ def download(session):
     with open(archive_path, 'wb') as file:
         file.write(response.content)
     logging.info(
-        SUCCESSFUL_OUTPUT_FILE_MESSAGE.format(file_path=archive_path)
+        SUCCESSFUL_DOWNLOAD_MESSAGE.format(archive_path=archive_path)
     )
-    [logging.error(failure) for failure in failed_connections]
 
 
 def pep(session):
-    count_statused = defaultdict(int)
-    soup, failed_connections = creating_soup(session, MAIN_PEP_URL)
+    count_status_of_peps = defaultdict(int)
+    try:
+        soup = creating_soup(session, MAIN_PEP_URL)
+    except ConnectionError as error:
+        logging.error(
+            ERROR_CONNECTION_TO_URL.format(error=error)
+        )
     main_category = find_tag(soup, 'section', {'id': 'index-by-category'})
     categories = main_category.find_all('section')
     not_equal_statuses = []
+    incorrect_urls = []
     for category in categories:
         peps_in_category = category.find_all('tr')
         for pep in tqdm(peps_in_category[1:], desc='Parsing pep categories'):
@@ -112,10 +148,14 @@ def pep(session):
             status_on_main_page = (
                 '' if len(title.text) == 1 else title.text[1:]
             )
-            soup, new_failed_connections = creating_soup(
-                session, detail_pep_url
-            )
-            failed_connections.extend(new_failed_connections)
+            try:
+                soup = creating_soup(
+                    session, detail_pep_url
+                )
+            except ConnectionError as error:
+                incorrect_urls.append(
+                    ERROR_CONNECTION_TO_URL.format(error=error)
+                )
             table_on_detail_page = find_tag(
                 soup, 'dl', {'class': 'rfc2822 field-list simple'}
             )
@@ -141,15 +181,15 @@ def pep(session):
                         )
                     )
                 )
-                count_statused[status_on_detail_pep_page] += 1
+                count_status_of_peps[status_on_detail_pep_page] += 1
             else:
-                count_statused[status_on_main_page] += 1
-    [logging.error(failure) for failure in failed_connections]
-    [logging.info(unmatched) for unmatched in not_equal_statuses]
+                count_status_of_peps[status_on_main_page] += 1
+    [map(logging.error, incorrect_urls)]
+    [map(logging.info, not_equal_statuses)]
     return [
         ('Результаты', 'Количество'),
-        *count_statused.items(),
-        ('Всего', sum(count_statused.values()))
+        *count_status_of_peps.items(),
+        ('Всего', sum(count_status_of_peps.values()))
     ]
 
 
@@ -168,15 +208,18 @@ def main():
     args = arg_parser.parse_args()
     logging.info(COMMAND_LINE_ARGUMENTS_MESSAGE)
     parser_mode = args.mode
-    session = requests_cache.CachedSession()
-    if args.clear_cache:
-        session.cache.clear()
+    try:
+        session = requests_cache.CachedSession()
+        if args.clear_cache:
+            session.cache.clear()
+    except Exception as error:
+        logging.error(ERROR_PARSER_FINAL_PART.format(traceback=error))
     results = MODE_TO_FUNCTION[parser_mode](session)
     try:
         control_output(results, args)
         logging.info(FINAL_PARSER_MESSAGE)
-    except Exception:
-        logging.error(ERROR_PARSER_FINAL_PART.format(format_exc()))
+    except Exception as error:
+        logging.error(ERROR_PARSER_FINAL_PART.format(traceback=error))
 
 
 if __name__ == '__main__':
