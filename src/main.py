@@ -26,7 +26,7 @@ COMMAND_LINE_ARGUMENTS_MESSAGE = 'Cli arguments: {args}'
 FINAL_PARSER_MESSAGE = 'Parser completed his work.'
 ERROR_CONNECTION_TO_URL = 'Cannot connection to url! Error: {error}'
 ERROR_NOT_MATCHES = 'Find None matches!'
-ERROR_PARSER_FINAL_PART = 'Parser got next error: {traceback}'
+ERROR_PARSER_FINAL_PART = 'Parser got next error: {error}'
 ERROR_NOT_EQUAL_PEP_STATUSES = (
     'Incorrect statuses:\n{detail_pep_url}\n'
     'Real status: {status_on_detail_pep_page}\n'
