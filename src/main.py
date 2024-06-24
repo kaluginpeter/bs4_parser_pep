@@ -46,7 +46,10 @@ def whats_new(session):
     ):
         href = tag_a.get('href')
         version_link = urljoin(WHATS_NEW_URL, href)
-        soup = creating_soup(session, version_link)
+        try:
+            soup = creating_soup(session, version_link)
+        except ConnectionError as error:
+            raise ConnectionError(ERROR_CONNECTION_TO_URL.format(error=error))
         results.append(
             (
                 version_link,
@@ -121,7 +124,12 @@ def pep(session):
             status_on_main_page = (
                 '' if len(title.text) == 1 else title.text[1:]
             )
-            soup = creating_soup(session, detail_pep_url)
+            try:
+                soup = creating_soup(session, detail_pep_url)
+            except ConnectionError as error:
+                raise ConnectionError(
+                    ERROR_CONNECTION_TO_URL.format(error=error)
+                )
             table_on_detail_page = find_tag(
                 soup, 'dl', {'class': 'rfc2822 field-list simple'}
             )
