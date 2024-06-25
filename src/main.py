@@ -38,6 +38,7 @@ ERROR_NOT_EQUAL_PEP_STATUSES = (
 def whats_new(session):
     soup = creating_soup(session, WHATS_NEW_URL)
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, автор')]
+    failed_connections = []
     for tag_a in tqdm(
         soup.select(
             '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
@@ -49,7 +50,10 @@ def whats_new(session):
         try:
             soup = creating_soup(session, version_link)
         except ConnectionError as error:
-            raise ConnectionError(ERROR_CONNECTION_TO_URL.format(error=error))
+            failed_connections.append(
+                ERROR_CONNECTION_TO_URL.format(error=error)
+            )
+            continue
         results.append(
             (
                 version_link,
@@ -57,6 +61,7 @@ def whats_new(session):
                 find_tag(soup, 'dl').text.replace('\n', ' ')
             )
         )
+    list(map(logging.error, failed_connections))
     return results
 
 
@@ -113,6 +118,7 @@ def pep(session):
     main_category = find_tag(soup, 'section', {'id': 'index-by-category'})
     categories = main_category.find_all('section')
     not_equal_statuses = []
+    failed_connections = []
     for category in categories:
         peps_in_category = category.find_all('tr')
         for pep in tqdm(peps_in_category[1:], desc='Parsing pep categories'):
@@ -127,9 +133,10 @@ def pep(session):
             try:
                 soup = creating_soup(session, detail_pep_url)
             except ConnectionError as error:
-                raise ConnectionError(
+                failed_connections.append(
                     ERROR_CONNECTION_TO_URL.format(error=error)
                 )
+                continue
             table_on_detail_page = find_tag(
                 soup, 'dl', {'class': 'rfc2822 field-list simple'}
             )
@@ -159,6 +166,7 @@ def pep(session):
             else:
                 count_status_of_peps[status_on_main_page] += 1
     list(map(logging.info, not_equal_statuses))
+    list(map(logging.error, failed_connections))
     return [
         ('Результаты', 'Количество'),
         *count_status_of_peps.items(),

@@ -15,19 +15,10 @@ SUCCESSFUL_OUTPUT_FILE_MESSAGE = (
     'on path: {file_path}'
 )
 
-OUTPUT_FUNCTIONS = {}
-
-
-def control_output(results, cli_args):
-    OUTPUT_FUNCTIONS[cli_args.output](results, cli_args)
-
 
 def default_output(results, args=None):
     for row in results:
         print(*row)
-
-
-OUTPUT_FUNCTIONS[None] = default_output
 
 
 def pretty_output(results, args=None):
@@ -36,9 +27,6 @@ def pretty_output(results, args=None):
     table.align = 'l'
     table.add_rows(results[1:])
     print(table)
-
-
-OUTPUT_FUNCTIONS[PRETTY_TABLE_OUTPUT] = pretty_output
 
 
 def file_output(results, cli_args):
@@ -55,4 +43,12 @@ def file_output(results, cli_args):
     logging.info(SUCCESSFUL_OUTPUT_FILE_MESSAGE.format(file_path=file_path))
 
 
-OUTPUT_FUNCTIONS[FILE_OUTPUT] = file_output
+OUTPUT_FUNCTIONS = {
+    PRETTY_TABLE_OUTPUT: pretty_output,
+    FILE_OUTPUT: file_output,
+    None: default_output
+}
+
+
+def control_output(results, cli_args):
+    OUTPUT_FUNCTIONS[cli_args.output](results, cli_args)
